@@ -13,34 +13,28 @@
    file: relative path to the PDF, image (jpg/png/webp) or DOCX.
    Remove the sample entries you do not have, and replace the filenames
    with your real ones. Only list documents you approve for public viewing. */
-const CREDENTIAL_CATEGORIES = [
-  "Resume / CV",
-  "Educational Credentials",
-  "Training Certificates",
-  "Technical Certificates",
-  "Other Supporting Documents"
-];
 
 const credentials = [
-  {
-    title: "Resume - Kenneth Fernandez",
-    category: "Resume / CV",
-    description: "My updated professional resume.",
-    file: "assets/credentials/Kenneth_Fernandez_Resume.pdf"
-  },
-  {
-    title: "Educational Credential",
-    category: "Educational Credentials",
-    description: "Supporting document for my educational background.",
-    file: "assets/credentials/educational_credential.pdf"
-  },
-  {
-    title: "Training Certificate",
-    category: "Training Certificates",
-    description: "Supporting documentation for relevant training.",
-    file: "assets/credentials/training_certificate.pdf"
-  }
+    {
+        title: "Resume - Kenneth Fernandez",
+        category: "Resume / CV",
+        description: "My updated professional resume.",
+        file: "credentials/RESUME.pdf"
+    },
+    {
+        title: "Educational Credential",
+        category: "Educational Credentials",
+        description: "Supporting document for my educational background.",
+        file: "credentials/educational_credential.pdf"
+    },
+    {
+        title: "Training Certificate",
+        category: "Training Certificates",
+        description: "Supporting documentation for relevant training.",
+        file: "credentials/NC_page-0001.jpg"
+    }
 ];
+
 
 /* ---------- 2. CONTACT FORM SETTING (edit me) ----------
    Leave empty while the site is static: the form will validate but will
