@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Selected Work Manager — Kenneth Fernandez</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#182433;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;padding:28px 16px}.wrap{max-width:1050px;margin:auto}
+header,.panel{background:#fff;border:1px solid #e3e9f1;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 8px 28px #19324d0a}
+h1{font-size:clamp(24px,4vw,34px);margin:0 0 8px}h2{font-size:19px;margin:0 0 15px}
+p{line-height:1.55;color:#586779}.muted{font-size:13px;color:#68788a}
+label{display:block;font-weight:650;font-size:13px;margin:12px 0 6px}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid #ccd6e2;border-radius:9px;font:inherit;background:#fff;color:#182433}
+textarea{min-height:85px;resize:vertical}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+button{border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer;background:#4f7cac;color:#fff}
+button.secondary{background:#eaf0f7;color:#26394d}button:disabled{opacity:.55;cursor:not-allowed}
+.drop{border:2px dashed #9eb3ca;border-radius:13px;padding:30px;text-align:center;background:#f8fbff;cursor:pointer}
+.drop.drag{background:#eaf3ff;border-color:#4f7cac}.drop strong{display:block;margin-bottom:5px}
+.item{border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:grid;grid-template-columns:120px 1fr;gap:14px;margin-top:12px}
+.item img{width:120px;height:100px;object-fit:cover;border-radius:8px;background:#edf1f5}
+.item .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.item .fields label{margin:0}.item .fields .wide{grid-column:1/-1}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+#status{white-space:pre-wrap;margin-top:14px;padding:12px;border-radius:9px;background:#f1f5f9;color:#26394d}
+.warning{border-left:4px solid #d69a28;padding:10px 13px;background:#fff8e8;border-radius:7px}
+@media(max-width:600px){.item{grid-template-columns:1fr}.item img{width:100%;height:170px}.item .fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main class="wrap">
+<header>
+<h1>Selected Work Manager</h1>
+<p>Upload several project screenshots and publish new cards to the Selected Work section of your portfolio.</p>
+<p class="muted">This is a separate helper page. It uploads image files to your GitHub repository and appends project cards to <code>index.html</code>.</p>
+</header>
+
+<section class="panel">
+<h2>1. Connect your GitHub repository</h2>
+<div class="grid">
+<div><label for="owner">GitHub username</label><input id="owner" value="Zenitsuu22"></div>
+<div><label for="repo">Repository name</label><input id="repo" value="KTHFADZ"></div>
+<div><label for="branch">Branch</label><input id="branch" value="main"></div>
+<div><label for="indexPath">Portfolio HTML file</label><input id="indexPath" value="index.html"></div>
+</div>
+<label for="token">GitHub Personal Access Token</label>
+<input id="token" type="password" autocomplete="off" placeholder="Paste your token here (kept only in this browser tab)">
+<p class="muted">Create a fine-grained token for this repository with Contents: Read and write. Do not put your token in your website code or share it with anyone. This page does not save it to local storage.</p>
+<button id="test" class="secondary">Test connection</button>
+</section>
+
+<section class="panel">
+<h2>2. Add screenshots</h2>
+<div class="drop" id="drop">
+<strong>Drag and drop multiple screenshots here</strong>
+<span class="muted">or click to choose PNG, JPG, WEBP, or GIF files</span>
+<input id="files" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+</div>
+<div id="items"></div>
+<div class="actions">
+<button id="publish" disabled>Upload images and publish to portfolio</button>
+<button id="clear" class="secondary" type="button">Clear selection</button>
+</div>
+<div id="status" role="status">Ready. Connect to GitHub, then add your screenshots.</div>
+</section>
+
+<section class="panel">
+<h2>Before publishing</h2>
+<div class="warning"><strong>Important:</strong> This tool adds new project cards; it does not delete or replace your existing cards. Check that screenshots contain no private information, trainee details, or confidential records.</div>
+<p class="muted">Each screenshot becomes one project card. You can edit its title, description, category, status, and technologies before publishing. GitHub Pages may take a short time to show the update.</p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const filesInput=$('files'), drop=$('drop'), itemsBox=$('items'), statusBox=$('status'), publishBtn=$('publish');
+let selected=[];
+const categories=[['web','Web Applications'],['academic','Academic Projects'],['data','Data & Spreadsheets'],['admin','Administrative Tools']];
+const statuses=[['done','Completed'],['demo','Demonstration'],['wip','In Progress'],['placeholder','Placeholder']];
+function slug(s){return s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)||'project'}
+function setStatus(s){statusBox.textContent=s}
+function addFiles(list){
+ for(const f of list){
+  if(!/^image\/(png|jpeg|webp|gif)$/.test(f.type)){setStatus('Skipped unsupported file: '+f.name);continue}
+  selected.push({file:f,title:f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' '),description:'Project screenshot and overview.',category:'academic',status:'demo',tech:'',url:URL.createObjectURL(f)});
+ }
+ render(); filesInput.value='';
+}
+function render(){
+ itemsBox.innerHTML='';
+ selected.forEach((it,i)=>{
+  const el=document.createElement('div');el.className='item';
+  const img=document.createElement('img');img.src=it.url;img.alt='Screenshot preview';
+  const fields=document.createElement('div');fields.className='fields';
+  fields.innerHTML=`
+   <label>Project title<input data-k="title" value="${esc(it.title)}"></label>
+   <label>Category<select data-k="category">${categories.map(([v,t])=>`<option value="${v}" ${it.category===v?'selected':''}>${t}</option>`).join('')}</select></label>
+   <label class="wide">Description<textarea data-k="description">${esc(it.description)}</textarea></label>
+   <label>Badge<select data-k="status">${statuses.map(([v,t])=>`<option value="${v}" ${it.status===v?'selected':''}>${t}</option>`).join('')}</select></label>
+   <label>Technologies<input data-k="tech" value="${esc(it.tech)}" placeholder="PHP, MySQL, HTML"></label>
+   <div class="wide"><button type="button" class="secondary" data-remove="${i}">Remove this screenshot</button></div>`;
+  fields.querySelectorAll('[data-k]').forEach(input=>input.addEventListener('input',()=>it[input.dataset.k]=input.value));
+  fields.querySelector('[data-remove]').addEventListener('click',()=>{URL.revokeObjectURL(it.url);selected.splice(i,1);render()});
+  el.append(img,fields);itemsBox.append(el);
+ });
+ publishBtn.disabled=!selected.length;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+drop.addEventListener('click',()=>filesInput.click());
+filesInput.addEventListener('change',e=>addFiles(e.target.files));
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');addFiles(e.dataTransfer.files)});
+$('clear').addEventListener('click',()=>{selected.forEach(x=>URL.revokeObjectURL(x.url));selected=[];render();setStatus('Selection cleared.')});
+function cfg(){return {owner:$('owner').value.trim(),repo:$('repo').value.trim(),branch:$('branch').value.trim(),indexPath:$('indexPath').value.trim(),token:$('token').value.trim()}}
+async function api(path,options={}){
+ const c=cfg();const r=await fetch('https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+path.split('/').map(encodeURIComponent).join('/'),{...options,headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+c.token,'X-GitHub-Api-Version':'2022-11-28',...(options.headers||{})}});
+ const data=await r.json();if(!r.ok)throw new Error(data.message||('GitHub API error '+r.status));return data;
+}
+$('test').addEventListener('click',async()=>{
+ const c=cfg();if(!c.token){setStatus('Paste your GitHub token first.');return}
+ setStatus('Testing repository access...');
+ try{const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`,{headers:{Authorization:'Bearer '+c.token,Accept:'application/vnd.github+json'}});const d=await r.json();if(!r.ok)throw new Error(d.message||r.status);setStatus('Connected to '+d.full_name+'. Default branch: '+d.default_branch+'.');if(!$('branch').value.trim())$('branch').value=d.default_branch}
+ catch(e){setStatus('Connection failed: '+e.message)}
+});
+function b64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file)})}
+function badgeClass(s){return {done:'badge-done',demo:'badge-demo',wip:'badge-wip',placeholder:'badge-placeholder'}[s]||'badge-demo'}
+function badgeText(s){return {done:'Completed',demo:'Demonstration',wip:'In Progress',placeholder:'Placeholder'}[s]||'Demonstration'}
+function makeCard(it,path){
+ const category=it.category;const tags=it.tech.split(',').map(x=>x.trim()).filter(Boolean);
+ return `\n          <article class="card project reveal" data-category="${category}">\n            <div class="project-img"><img src="${path}" alt="Screenshot of ${esc(it.title)}" loading="lazy"></div>\n            <div class="project-body">\n              <span class="badge ${badgeClass(it.status)}">${badgeText(it.status)}</span>\n              <h3>${esc(it.title)}</h3>\n              <p>${esc(it.description)}</p>\n              ${tags.length?`<ul class="tags">${tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}\n            </div>\n          </article>\n`;
+}
+publishBtn.addEventListener('click',async()=>{
+ const c=cfg();if(!c.token){setStatus('Please paste your GitHub token first.');return}
+ if(!c.owner||!c.repo||!c.branch||!c.indexPath){setStatus('Complete the repository settings first.');return}
+ publishBtn.disabled=true;$('test').disabled=true;
+ try{
+  setStatus('Reading portfolio HTML from GitHub...');
+  const index=await api(c.indexPath+'?ref='+encodeURIComponent(c.branch));
+  const decoded=decodeURIComponent(escape(atob(index.content.replace(/\n/g,''))));
+  if(!decoded.includes('id="projectGrid"'))throw new Error('Could not find id="projectGrid" in the selected HTML file.');
+  let updated=decoded;
+  const additions=[];
+  for(let i=0;i<selected.length;i++){
+   const it=selected[i];setStatus(`Uploading image ${i+1} of ${selected.length}: ${it.file.name}`);
+   const ext=(it.file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+   const filename=Date.now()+'-'+i+'-'+slug(it.title)+'.'+ext;
+   const path='assets/images/projects/'+filename;
+   await api(path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Add project screenshot: '+it.title,content:await b64(it.file),branch:c.branch})});
+   additions.push(makeCard(it,path));
+  }
+  const marker='</div>\n        <p class="empty-msg" id="projectEmpty"';
+  const pos=updated.indexOf(marker,updated.indexOf('id="projectGrid"'));
+  if(pos<0)throw new Error('Could not locate the end of the project grid. No index.html changes were made, but uploaded images may now be in the repository.');
+  updated=updated.slice(0,pos)+additions.join('')+updated.slice(pos);
+  setStatus('Saving updated Selected Work section...');
+  const content=btoa(unescape(encodeURIComponent(updated)));
+  await api(c.indexPath,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Update Selected Work projects',content,sha:index.sha,branch:c.branch})});
+  setStatus('Published successfully! '+selected.length+' screenshot(s) uploaded and project card(s) added. Check your GitHub Pages site after it rebuilds.');
+ }catch(e){setStatus('Could not complete publishing: '+e.message+'\nIf images uploaded before the error, they may already be in assets/images/projects/. Check the repository before retrying.')}
+ finally{publishBtn.disabled=!selected.length;$('test').disabled=false}
+});
+</script>
+</body></html>
